@@ -83,6 +83,7 @@ const store = makeInMemoryStore({
 global.db = new database();
 global.conf = new cfg();
 global.reply = require('./config/response.json');
+db.add('dashboard');
 
 // Attribute
 const attribute = {
