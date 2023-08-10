@@ -1,0 +1,30 @@
+{
+  "name": "wabot",
+  "version": "1.0.0",
+  "description": "WhatsApp automation using websocket.",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "author": "ahmadsysdev",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "github:WhiskeySockets/Baileys",
+    "chalk": "^4.1.2",
+    "file-type": "^16.5.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "jadianime-ts": "^2.0.0",
+    "jimp": "^0.16.13",
+    "jsdom": "^22.1.0",
+    "moment": "^2.29.4",
+    "node-fetch": "^2.6.12",
+    "openai": "^3.3.0",
+    "parse-ms": "^2.1.0",
+    "pino": "^8.15.0",
+    "pino-pretty": "^10.2.0",
+    "qrcode-terminal": "^0.12.0",
+    "spinnies": "^0.5.1"
+  }
+}

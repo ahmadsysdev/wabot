@@ -1,0 +1,11 @@
+{
+    "wait": "Your request is being processed. Kindly wait.",
+    "OnlyGroups": "You can utilize this feature exclusively within groups, not in private chats.",
+    "OnlyPM": "You can utilize this feature exclusively in private chats; it is not accessible in group chats.",
+    "OnlyAdmins": "This command is restricted to group admins only, and unfortunately, you fall under the category of standard participants. You won't be able to use it.",
+    "selfAdmin": "To access this feature, it's essential that I hold the position of group admin.",
+    "OnlyDeveloper": "Unfortunately, this feature is off-limits to non-developers.",
+    "OnlyPre": "Unfortunately, this feature is available to premium users only. Consider upgrading to PREMIUM to take advantage of it.",
+    "OnlyPro": "This feature is a benefit reserved for professional users. Elevate your account to PRO to start using it.",
+    "param": "Please reply a message or send query."
+}

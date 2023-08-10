@@ -1,0 +1,7 @@
+node_modules/
+temp/data.exif
+config/dev.json
+config/config.json
+database/
+debug/
+session/
