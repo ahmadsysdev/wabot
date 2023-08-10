@@ -173,6 +173,11 @@ const readFeatures = () => {
 }
 readFeatures();
 
+// Create the './temp' directory if it doesn't exist
+if (!fs.existsSync('./temp')) {
+    fs.mkdirSync('./temp');
+}
+
 // Connect to WhatsApp Websocket
 const connect = async () => {
     const starts = Date.now(); // Get the current timestamp

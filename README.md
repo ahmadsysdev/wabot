@@ -25,15 +25,11 @@ To get started with the project, follow these steps:
 git clone https://github.com/ahmadsysdev/wabot.git
 cd wabot
 ```
-2. Create a `temp` directory in the project directory:
-```bash
-mkdir temp
-```
-3. Install dependencies:
+2. Install dependencies:
 ```bash
 npm install
 ```
-4. Configure the project:
+3. Configure the project:
 - Inside the `config` directory, create a `dev.json` file with the following content:
 ```json
 [
@@ -72,11 +68,11 @@ npm install
   }
 ]
 ```
-5. Start the project:
+4. Start the project:
 ```bash
 npm run start
 ```
-6. Scan the QR code in your WhatsApp app to authenticate and complete the setup.
+5. Scan the QR code in your WhatsApp app to authenticate and complete the setup.
 
 ## Contributing
 
