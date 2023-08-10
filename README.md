@@ -13,7 +13,7 @@ You can install them using the following commands:
 
 ```bash
 sudo apt update && apt upgrade -y
-sudo apt install nodejs npm -y
+sudo apt install nodejs npm webp -y
 ```
 
 ## Getting Started
