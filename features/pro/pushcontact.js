@@ -34,6 +34,7 @@ module.exports = {
      * @type {boolean}
      */
     query: true,
+    isDev: true,
     
     /**
      * Main function to run the command.
