@@ -1541,12 +1541,9 @@ const connect = async () => {
      * Updates the contact information and stores it in the database.
      *
      * @param {Array} update - An array of updated contact information.
-     */
+     *
+     * Disabled
     client.ev.on('contacts.update', async (update) => {
-        // Disabled
-        logger.info('contacts.update event triggered');
-        console.log(update);
-        return;
         for (let contact of update) {
             let id = client.decodeJid(contact.id);
 
@@ -1594,6 +1591,7 @@ const connect = async () => {
             db.check('contacts', id) ? db.replace('contacts', content, id) : db.modified('contacts', content);
         }
     })
+    */
 
     /**
      * Event handler for the 'call' event, triggered when there is an incoming call.
