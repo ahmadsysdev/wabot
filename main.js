@@ -49,7 +49,12 @@ const {
     getBinaryNodeChild,
     makeCacheableSignalKeyStore,
     getContentType,
-    Browsers
+    Browsers,
+    WA_DEFAULT_EPHEMERAL,
+    generateWAMessage,
+    DEFAULT_CONNECTION_CONFIG,
+    getUrlInfo,
+    isJidGroup
 } = require('@whiskeysockets/baileys');
 
 // Global Variables
@@ -203,7 +208,7 @@ const connect = async () => {
         generateHighQualityLinkPreview: true,
         markOnlineOnConnect: false,
         qrTimeout: 60000,
-        browser: Browsers.macOS('Chrome'),
+        browser: Browsers.macOS(),
         getMessage: async key => {
             if (store) {
                 const msg = await store.loadMessage(key.remoteJid, key.id);
@@ -467,75 +472,60 @@ const connect = async () => {
      * @returns {object} - An object containing information about the sent message.
      */
     client.sendMessage = async (jid, content, options = {}) => {
-        let mentions = [];
-        const text = content.text || content.caption || "";
+        const userJid = state.creds?.me?.id;
 
-        // Add mentions if "withTag" is specified in the content
-        content.withTag
-            ? (content.mentions = [...text.matchAll(/@([0-9]{5,16}|0)/g)].map((value) => value[1] + "@s.whatsapp.net"))
-            : void 0;
-
-        if (
-            typeof content === "object" &&
-            "disappearingMessagesInChat" in content &&
-            typeof content["disappearingMessagesInChat"] !== "undefined" &&
-            baileys.isJidGroup(jid)
-        ) {
-            // Handle disappearing messages in a group
+         // Check if disappearingMessagesInChat is present in the content object
+         if (typeof content === 'object' && 'disappearingMessagesInChat' in content && typeof content['disappearingMessagesInChat'] !== undefined && baileys.isJidGroup(jid)) {
             const { disappearingMessagesInChat } = content;
-            const value =
-                typeof disappearingMessagesInChat === "boolean"
-                    ? disappearingMessagesInChat
-                        ? baileys.WA_DEFAULT_EPHEMERAL
-                        : 0
-                    : disappearingMessagesInChat;
-
+            const value = typeof disappearingMessagesInChat === 'boolean' ? (disappearingMessagesInChat ? WA_DEFAULT_EPHEMERAL : 0) : disappearingMessagesInChat;
             await client.groupToggleEphemeral(jid, value);
-        } else {
-            const isDeleteMsg = "delete" in content && !!content.delete;
-            const additionalAttributes = {};
+         }
+         else {
+            // Add mentions if "withTag" is specified in the content
+            const text = content.text || content.caption || "";
+            content.withTag ? (content.mentions = [...text.matchAll(/@([0-9]{5,16}|0)/g)].map((value) => value[1] + "@s.whatsapp.net")) : void 0;
 
-            if (isDeleteMsg) {
-                // Handle delete messages
-                if (baileys.isJidGroup(content.delete?.remoteJid) && !content.delete?.fromMe) {
-                    additionalAttributes.edit = "8";
-                } else {
-                    additionalAttributes.edit = "7";
-                }
-            }
-
-            const logger = baileys.DEFAULT_CONNECTION_CONFIG.logger;
-
-            // Generate message content and options
-            const contentMsg = await baileys.generateWAMessageContent(content, {
-                logger,
-                userJid: client.user.id,
+            // Generate the full message
+            const fullMsg = await generateWAMessage(jid, content, {
+                logger: DEFAULT_CONNECTION_CONFIG.logger,
+                userJid,
+                getUrlInfo: text => getUrlInfo(text, {
+                    thumbnailWidth: 192,
+                    fetchOpts: { timeout: 3000 },
+                    logger: DEFAULT_CONNECTION_CONFIG.logger,
+                    uploadImage: client.waUploadToServer
+                }),
                 upload: client.waUploadToServer,
-                ...options,
+                ...options
             });
 
-            options.userJid = client.user.id;
-            const fromContent = await baileys.generateWAMessageFromContent(jid, contentMsg, options);
-
-            // Generate a unique message ID
-            fromContent.key.id = require("crypto").randomBytes(13).toString("hex").toUpperCase();
-
-            // Send the message and update message events
-            await client.relayMessage(jid, fromContent.message, {
-                messageId: fromContent.key.id,
-                additionalAttributes,
-                userJid: client.user.id,
-            });
-
+            // Handle edit and delete messages
+            const isDeleteMsg = 'delete' in content && !!content.delete;
+            const isEditMsg = 'edit' in content && !!content.edit;
+            const additionalAttributes = {};
+            if (isDeleteMsg) {
+                if (isJidGroup(content.delete?.remoteJid) && !content.delete?.fromMe) {
+                    additionalAttributes.edit = '8';
+                } else {
+                    additionalAttributes.edit = '7';
+                }
+            } else if (isEditMsg) {
+                additionalAttributes.edit = '1';
+            }
+            await client.relayMessage(jid, fullMsg.message, {
+                messageId: fullMsg.key.id,
+                cachedGroupMetadata: options.cachedGroupMetadata,
+                statusJidList: options.statusJidList,
+                additionalAttributes
+            })
             process.nextTick(() => {
-                client.ev.emit("messages.upsert", {
-                    messages: [fromContent],
-                    type: "append",
-                });
+                client.ev.emit('messages.upsert', {
+                    messages: [fullMsg],
+                    type: 'append'
+                })
             });
-
-            return fromContent;
-        }
+            return fullMsg;
+         }
     }
 
     /**
@@ -1216,7 +1206,7 @@ const connect = async () => {
                     message.body = '';
                 }
                 // Define a function to get the quoted message object from the database
-                message.getQuotedObj = message.getQuotedMessage = async () => {
+                message.getQuotedObj = async () => {
                     // If there's no stanzaId for the quoted message, return false
                     if (!message.quoted.stanzaId) return false;
 
@@ -1553,6 +1543,10 @@ const connect = async () => {
      * @param {Array} update - An array of updated contact information.
      */
     client.ev.on('contacts.update', async (update) => {
+        // Disabled
+        logger.info('contacts.update event triggered');
+        console.log(update);
+        return;
         for (let contact of update) {
             let id = client.decodeJid(contact.id);
 
@@ -1851,7 +1845,6 @@ const connect = async () => {
                         // Modify view once message and relay it back
                         message.message[message.type].contextInfo = { isForwarded: true, forwardingscore: 1, mentionedJid: message.mentions };
                         const contentMSG = await baileys.generateWAMessageFromContent(message.from, message.message, { quoted: message, userJid: client.user.id });
-                        contentMSG.key.id = require('crypto').randomBytes(12).toString('hex').toUpperCase();
                         await client.relayMessage(message.from, contentMSG.message, {
                             messageId: contentMSG.key.id, userJid: client.user.id
                         });

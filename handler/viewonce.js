@@ -20,7 +20,7 @@ module.exports = async function forwardAndRelay(client, message, options = {}) {
 
     // Generate a new message content using baileys
     const content = await baileys.generateWAMessageFromContent(message.from, message.message, options);
-    content.key.id = 'AHMAD' + require('crypto').randomBytes(12).toString('hex').toUpperCase();
+    content.key.id = require('crypto').randomBytes(12).toString('hex').toUpperCase();
 
     // Relay the generated message to the specified user
     return await client.relayMessage(message.from, content.message, {

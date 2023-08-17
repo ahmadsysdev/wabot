@@ -32,7 +32,7 @@ module.exports = {
 	 * @param {Object} client - The WhatsApp client instance.
 	 * @param {Object} message - The message that triggered the command.
 	 * @param {Object} options - The options passed to the command.
-	 * @param {import('whatsapp-web.js').Chat} options.groupMetadata - The metadata of the group.
+	 * @param {Object} options.groupMetadata - The metadata of the group.
 	 * @param {string} options.query - The query argument of the command.
 	 */
 	async run(client, message, { groupMetadata, query }) {
@@ -49,9 +49,6 @@ module.exports = {
 			}
 
 			const metadata = await client.extractGroupMetadataCode(validation);
-			if (metadata.id === '601161528902-1604572322@g.us') {
-				return await client.sendMessage(message.from, { text: 'Action denied!' }, { quoted: message });
-			}
 
 			const text = ['◪ *GROUP INFORMATION*\n'];
 			text.push(`❏ Owner: 「 @${metadata.creator ? metadata.creator.split('@')[0] : "Unable to fetch creator"} 」`);
