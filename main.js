@@ -128,6 +128,7 @@ const readFeatures = () => {
                 category: typeof categories.category === 'undefined' ? '' : res.toLowerCase(),
                 wait: false,
                 isDev: false,
+                isOwner: true,
                 isAdmin: false,
                 option: false,
                 isQuoted: false,
@@ -135,6 +136,7 @@ const readFeatures = () => {
                 isGroup: false,
                 isPrivate: false,
                 query: false,
+                queries: false,
                 limit: false,
                 cooldown: false,
                 noPrefix: false,
@@ -1334,6 +1336,9 @@ const connect = async () => {
         // Determine the value of the 'queries' variable based on the provided options
         const queries = !!query ? query : message.quoted && message.quoted.text || '';
 
+        // Check if the sender of the message is the same as the client's user ID
+        const isClientID = message.sender === client.decodeJid(client.user.id);
+
         // Check if the sender is a developer (based on the 'dev' status)
         global.isDev = conf.check('dev', sender, 'jid');
 
@@ -1342,6 +1347,9 @@ const connect = async () => {
 
         // Read the 'dev.json' file to get developer-related information
         const dev = JSON.parse(fs.readFileSync('./config/dev.json'));
+
+        // Determine the mentioned participant: quoted message sender, mentioned participant, or sender if not in a group
+        mentioned = message.quoted ? [message.quoted.sender] : message.mentions || (!isGroup ? message.from : []);
 
         // Retrieve the command object based on the provided execution command or its aliases
         const cmd = attribute.command.get(exec.toLowerCase()) ||
@@ -1401,17 +1409,17 @@ const connect = async () => {
         }
 
         // Check if the command requires premium privileges and return an error if not premium or professional or a developer
-        if (cmd.options.isPremium && !isPremium && !isProfessional && !isDev) {
+        if (cmd.options.isPremium && !isPremium && !isProfessional && !isDev && !isClientID) {
             return await client.sendMessage(message.from, { text: reply.OnlyPre }, { quoted: message });
         }
 
         // Check if the command requires professional privileges and return an error if not professional or a developer
-        if (cmd.options.isProfessional && !isProfessional && !isDev) {
+        if (cmd.options.isProfessional && !isProfessional && !isDev && !isClientID) {
             return await client.sendMessage(message.from, { text: reply.OnlyPro }, { quoted: message });
         }
 
         // Check if the command has a limit and handle limit enforcement
-        if (cmd.options.limit && !isDev) {
+        if (cmd.options.limit && !isDev && !isClientID) {
             var limit = typeof cmd.options.limit === 'number' ? cmd.options.limit : 20;
             const limitBalance = db.check('limit', message.sender, 'id');
             var data = limitBalance || (_a = { id: message.sender }, _a[cmd.name] = limit) && _a;
@@ -1455,9 +1463,9 @@ const connect = async () => {
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
         }
 
-        // Check if the command requires a parameter and return an error if no query is provided and there's no quoted text
-        if (cmd.options.param && !query && !(message.quoted && message.quoted.text)) {
-            var stanza = await client.sendMessage(message.from, { text: cmd.options.message || reply.param }, { quoted: message });
+        // Check if the command requires a parameter or quoted message and return an error if no query or quoted message is provided
+        if (cmd.options.param && !queries) {
+            var stanza = await client.sendMessage(message.from, { text: reply.param }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
         }
 
@@ -1475,7 +1483,7 @@ const connect = async () => {
         }
 
         // Check if the command has a mention requirement and return an error if there are no mentions or quoted text
-        if (cmd.options.mention && (!message.mentions || !message.mentions[0]) && !message.quoted) {
+        if (cmd.options.mention && !mentioned[0] && isGroup) {
             var stanza = await client.sendMessage(message.from, { text: 'Please mention or reply the user.' }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, mention: true });
         }
@@ -1504,7 +1512,7 @@ const connect = async () => {
             query, attribute, args, arg, baileys, prefix, command, queries,
             response, dev, selfId: client.decodeJid(client.user.id),
             groupMetadata, groupSubject, groupAdmins, isAdmin, selfAdmin,
-            stanza, isGroup, regex: cmd.options.regex, cookies, logger
+            stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned
         })
             .then(() => {
                 logger.info(`Initiated the ${command} command from ${from} | ${isGroup ? groupSubject : username}`);
