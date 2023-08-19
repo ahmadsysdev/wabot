@@ -18,7 +18,7 @@ module.exports = {
 	/**
 	 * Usage syntax for the command.
 	 */
-	use: '[ text/reply ]',
+	usage: '[ text/reply ]',
 	/**
 	 * Indicates if this command only works within groups.
 	 */
@@ -27,6 +27,7 @@ module.exports = {
 	 * Indicates if the command requires admin privileges.
 	 */
 	isAdmin: true,
+	example: '@cmd Hello world!',
 	/**
 	 * The main function to run the command.
 	 * @param {Object} client - The WhatsApp client instance.
@@ -37,12 +38,12 @@ module.exports = {
 	 * @param {string} options.selfId - The ID of the bot itself.
 	 * @param {import('@whiskeysockets/baileys').Baileys} options.baileys - The Baileys instance.
 	 */
-	async run(client, message, { query, groupMetadata, selfId, baileys }) {
+	async run(client, message, { query, groupMetadata, selfId, baileys, reply }) {
 		if (message.quoted) {
 			let options = [];
 			const content = db.check('db', message.quoted.stanzaId, 'id');
 			if (!content) {
-				return await client.sendMessage(message.from, { text: 'The message you replied to doesn\'t exist in our database.' }, { quoted: message });
+				return await client.sendMessage(message.from, { text: RemotePlayback.notFound }, { quoted: message });
 			}
 
 			const mtype = Object.keys(content.message.message)[0];

@@ -19,7 +19,7 @@ module.exports = {
 	 * @param {string[]} options.dev - An array of developer-related information.
 	 * @param {string} options.arg - The command argument provided (if any).
 	 */
-    async run(client, message, { query, attribute, args, prefix, dev, arg }) {
+    async run(client, message, { query, attribute, args, prefix, dev, arg, reply }) {
         // Check if a specific command is queried
         if (query) {
             // Initialize an array to hold command information
@@ -30,7 +30,7 @@ module.exports = {
             // Find the command based on its name or alias
             const cmd = command.get(name) || [...command.values()].find((x) => x.alias.find((x) => x === args[0]));
             if (!cmd || (cmd.category === 'hidden' && dev[0].jid !== message.sender))
-                return message.reply(`'${name}' is not recognized as a command in our database.`);
+                return message.reply(reply.cmd.replace('@cmdname', name));
             else data.push(`Name: *${cmd.name}*`);
             if (cmd.alias.length !== 0) data.push(`Alias: *${cmd.alias.join(", ")}*`);
             if (cmd.desc) data.push(`Description: *${cmd.desc}*`);
@@ -90,8 +90,8 @@ module.exports = {
                 });
             };
 
-            text.push(`\nNote: Utilize *${arg} command* for a comprehensive command guide.`);
-            text.push(`\nPlease take note: *This project is still in the process of development. If you run into any problems or experience bugs, please make sure to reach out to the developer. Your involvement will help in identifying and resolving any issues effectively. Thank you.*`);
+            text.push(`\n` + reply.guide.replace('@arg', arg));
+            text.push(`\n` + reply.message);
 
             // Send the message to the user
             return await client.sendMessage(message.from, { text: text.join('\n') }, { quoted: message });

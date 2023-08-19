@@ -35,15 +35,17 @@ module.exports = {
      */
     query: true,
     isDev: true,
+    usage: '< text/reply >',
+    example: '@cmd Hello world!',
     
     /**
      * Main function to run the command.
      * @param {Object} client - The WhatsApp client instance.
      * @param {Object} message - The message that triggered the command.
-     * @param {Object} options.baileys - Baileys library.
+     * @param {Object} options.query - The command query.
+     * @param {Map} queue - The queue of items to be processed.
      */
-    message: 'Kindly reply with the message you wish to announce.',
-    async run(client, message, { baileys, logger, query }) {
+    async run(client, message, { logger, query, queue, reply }) {
 
         // Extract group metadata
         const metadata = await client.extractGroupMetadataJid(message.from);
@@ -56,7 +58,7 @@ module.exports = {
         const iteration = setInterval(async () => {
             if (participant.length <= sent) {
                 // Inform the sender that the messages have been sent
-                await client.sendMessage(message.from, { text: `Messages sent to all participants.\nTotal sent: ${sent} messages.` }, { quoted: message });
+                await client.sendMessage(message.from, { text: reply.sentPS.replace('@sent', sent) }, { quoted: message });
                 return clearInterval(iteration);
             }
             // if (!participant[sent]?.jid || participant[sent].jid === client.decodeJid(client.user.id)) return sent++;

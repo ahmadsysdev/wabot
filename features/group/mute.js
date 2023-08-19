@@ -46,8 +46,8 @@ module.exports = {
      * @param {Object} client - The WhatsApp client instance.
      * @param {Object} message - The message that triggered the command.
      */
-    async run(client, message) {
+    async run(client, message, { reply }) {
         await client.groupSettingUpdate(message.from, 'announcement')
-            .catch(async () => await client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }));
+            .catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
     },
 };

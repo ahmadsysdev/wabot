@@ -27,7 +27,7 @@ module.exports = {
      * Command usage syntax.
      * @type {string}
      */
-    use: '< text/reply >',
+    usage: '< text/reply >',
 
     /**
      * Indicates if this command requires to be used in a group.
@@ -52,6 +52,7 @@ module.exports = {
      * @type {boolean}
      */
     param: true,
+    example: '@cmd Hello world!',
 
     /**
      * Main function to run the command.

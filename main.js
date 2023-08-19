@@ -102,6 +102,7 @@ const attribute = {
 // Cooldown, Cookies, and Settings Maps
 const cooldown = new Map();
 const cookies = new Map();
+const queue = new Map();
 global.settings = new Map();
 
 // Regular Expression for URL Links
@@ -123,8 +124,9 @@ const readFeatures = () => {
                 name: 'command',
                 alias: [],
                 desc: '',
-                use: '',
+                usage: '',
                 type: '',
+                example: '',
                 category: typeof categories.category === 'undefined' ? '' : res.toLowerCase(),
                 wait: false,
                 isDev: false,
@@ -142,7 +144,7 @@ const readFeatures = () => {
                 noPrefix: false,
                 param: false,
                 regex: false,
-                message: false,
+                message: {},
                 mention: false,
                 media: {
                     VideoMessage: false,
@@ -162,7 +164,7 @@ const readFeatures = () => {
             let options = {};
             for (var i in cmd) {
                 typeof cmd[i] === 'boolean' ? (options[i] = cmd[i]) : void 0;
-                if (i === 'query' || i === 'media' || i === 'option' || i === 'regex' || i === 'message' || i === 'limit' || i === 'cooldown') options[i] = cmd[i];
+                options[i] = cmd[i];
                 const object = {
                     name: cmd.name,
                     alias: cmd.alias,
@@ -476,13 +478,13 @@ const connect = async () => {
     client.sendMessage = async (jid, content, options = {}) => {
         const userJid = state.creds?.me?.id;
 
-         // Check if disappearingMessagesInChat is present in the content object
-         if (typeof content === 'object' && 'disappearingMessagesInChat' in content && typeof content['disappearingMessagesInChat'] !== undefined && baileys.isJidGroup(jid)) {
+        // Check if disappearingMessagesInChat is present in the content object
+        if (typeof content === 'object' && 'disappearingMessagesInChat' in content && typeof content['disappearingMessagesInChat'] !== undefined && baileys.isJidGroup(jid)) {
             const { disappearingMessagesInChat } = content;
             const value = typeof disappearingMessagesInChat === 'boolean' ? (disappearingMessagesInChat ? WA_DEFAULT_EPHEMERAL : 0) : disappearingMessagesInChat;
             await client.groupToggleEphemeral(jid, value);
-         }
-         else {
+        }
+        else {
             // Add mentions if "withTag" is specified in the content
             const text = content.text || content.caption || "";
             content.withTag ? (content.mentions = [...text.matchAll(/@([0-9]{5,16}|0)/g)].map((value) => value[1] + "@s.whatsapp.net")) : void 0;
@@ -527,7 +529,7 @@ const connect = async () => {
                 })
             });
             return fullMsg;
-         }
+        }
     }
 
     /**
@@ -1336,11 +1338,15 @@ const connect = async () => {
         // Determine the value of the 'queries' variable based on the provided options
         const queries = !!query ? query : message.quoted && message.quoted.text || '';
 
-        // Check if the sender of the message is the same as the client's user ID
-        const isClientID = message.sender === client.decodeJid(client.user.id);
-
         // Check if the sender is a developer (based on the 'dev' status)
         global.isDev = conf.check('dev', sender, 'jid');
+
+        // Check if the sender is owner (based on the 'owner' status)
+        global.isOwner = conf.check('owner', sender, 'jid');
+
+        // Set global variables to indicate premium and professional user status
+        global.isPremium = senderType.getPremiumUser(sender);
+        global.isProfessional = senderType.getProfessionalUser(sender);
 
         // Define the 'username' variable based on whether the message is from a group or private chat
         const username = !isGroup ? message.pushName : void 0;
@@ -1355,6 +1361,9 @@ const connect = async () => {
         const cmd = attribute.command.get(exec.toLowerCase()) ||
             [...attribute.command.values()].find((x) => x.alias.find((x) => x.toLowerCase() === exec.toLowerCase())) ||
             attribute.command.get(exec) || [...attribute.command.values()].find((x) => x.alias.find((x) => x === exec));
+
+        // Command name & aliases
+        const aliases = [cmd.name, ...cmd.alias];
 
         // If no valid command object is found, return early
         if (!cmd) return;
@@ -1374,7 +1383,7 @@ const connect = async () => {
 
         // Check if the execution command is locked and prevent its use if locked
         if (attribute.lockfeature.get(exec.toLowerCase())) {
-            return await client.sendMessage(message.from, { text: 'Sorry, this command has been blocked for use by any user for now.' }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.disabled }, { quoted: message });
         }
 
         // Set the current timestamp as a cooldown for the sender if the command has a cooldown option
@@ -1409,22 +1418,22 @@ const connect = async () => {
         }
 
         // Check if the command requires premium privileges and return an error if not premium or professional or a developer
-        if (cmd.options.isPremium && !isPremium && !isProfessional && !isDev && !isClientID) {
+        if (cmd.options.isPremium && !isPremium && !isProfessional && !isDev && !message.self && !isOwner) {
             return await client.sendMessage(message.from, { text: reply.OnlyPre }, { quoted: message });
         }
 
         // Check if the command requires professional privileges and return an error if not professional or a developer
-        if (cmd.options.isProfessional && !isProfessional && !isDev && !isClientID) {
+        if (cmd.options.isProfessional && !isProfessional && !isDev && !message.self && !isOwner) {
             return await client.sendMessage(message.from, { text: reply.OnlyPro }, { quoted: message });
         }
 
         // Check if the command has a limit and handle limit enforcement
-        if (cmd.options.limit && !isDev && !isClientID) {
+        if (cmd.options.limit && !isDev && !message.self && !isOwner) {
             var limit = typeof cmd.options.limit === 'number' ? cmd.options.limit : 20;
             const limitBalance = db.check('limit', message.sender, 'id');
             var data = limitBalance || (_a = { id: message.sender }, _a[cmd.name] = limit) && _a;
             if (data[cmd.name] >= 1 === false) {
-                return await client.sendMessage(message.from, { text: `You've reached the limit for this feature. ${isProfessional ? '' : isPremium ? 'Upgrade to PRO to increase limit.' : 'Upgrade to PRO or PREMIUM to increase limit.'} Thank you.` }, { quoted: message });
+                return await client.sendMessage(message.from, { text: `${reply.reachedLimit} ${isProfessional ? '' : isPremium ? reply.upgradePro : reply.upgradePrem}` }, { quoted: message });
             }
             const balance = data[cmd.name] ? data[cmd.name] -= 1 : data[cmd.name] = limit - 1;
             limitBalance ? db.replace('limit', data, message.sender, 'id') : db.modified('limit', data);
@@ -1432,7 +1441,7 @@ const connect = async () => {
 
         // Check if the command requires a quoted message and return an error if no quoted message is present
         if (cmd.options.isQuoted && !message.quoted) {
-            return await client.sendMessage(message.from, { text: cmd.options.message || 'Please reply the message.' }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.reply }, { quoted: message });
         }
 
         // Check if the command requires specific media types and handle validation
@@ -1459,7 +1468,7 @@ const connect = async () => {
 
         // Check if the command requires a query and return an error if no query is provided
         if (cmd.options.query && !query) {
-            var stanza = await client.sendMessage(message.from, { text: 'Please enter query.' }, { quoted: message });
+            var stanza = await client.sendMessage(message.from, { text: reply.query }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
         }
 
@@ -1472,19 +1481,24 @@ const connect = async () => {
         // Check if the command has multiple options and handle option selection
         if (typeof cmd.options.option === 'object' && !cmd.options.option.includes(explode[1])) {
             // Create a message store information in cookies
-            var stanza = await client.sendMessage(message.from, { text: `Usage: *${exec} « ${cmd.options.option.join('/')} »*` }, { quoted: message });
+            var stanza = await client.sendMessage(message.from, { text: `${reply.usage} *${exec} « ${cmd.options.option.join('/')} »*` }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, option: cmd.options.option });
         }
 
         // Check if the command has a regex requirement and return an error if the query doesn't match the regex
         if (cmd.options.regex && !!queries && !cmd.options.regex.test(queries)) {
-            var stanza = await client.sendMessage(message.from, { text: cmd.options.message || 'Invalid query.' }, { quoted: message });
+            let replyMessage;
+            aliases.forEach((value) => {
+                replyMessage = reply.regex[value] || cmd.options.message?.regex;
+            });
+            replyMessage = `${replyMessage}\nExample: ${cmd.options.example.replace('@cmd', prefix + cmd.name)}`
+            var stanza = await client.sendMessage(message.from, { text: replyMessage }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, regex: cmd.options.regex });
         }
 
         // Check if the command has a mention requirement and return an error if there are no mentions or quoted text
         if (cmd.options.mention && !mentioned[0] && isGroup) {
-            var stanza = await client.sendMessage(message.from, { text: 'Please mention or reply the user.' }, { quoted: message });
+            var stanza = await client.sendMessage(message.from, { text: reply.mention }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, mention: true });
         }
 
@@ -1495,7 +1509,7 @@ const connect = async () => {
             const expiration = timestamps.get(sender) + amount;
             if (now < expiration) {
                 const timeleft = (expiration - now) / 1000;
-                return client.sendMessage(message.from, { text: `You're currently on cooldown. Please wait within ${timeleft.toFixed(1)} seconds.` }, { quoted: message });
+                return client.sendMessage(message.from, { text: reply.cooldown.replace('@time', timeleft.toFixed(1)) }, { quoted: message });
             }
         }
 
@@ -1511,8 +1525,8 @@ const connect = async () => {
         cmd.run(client, message, {
             query, attribute, args, arg, baileys, prefix, command, queries,
             response, dev, selfId: client.decodeJid(client.user.id),
-            groupMetadata, groupSubject, groupAdmins, isAdmin, selfAdmin,
-            stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned
+            groupMetadata, groupSubject, groupAdmins, isAdmin, selfAdmin, queue,
+            stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned, reply
         })
             .then(() => {
                 logger.info(`Initiated the ${command} command from ${from} | ${isGroup ? groupSubject : username}`);
@@ -1627,7 +1641,7 @@ const connect = async () => {
 
                     // Block the caller if they have called multiple times
                     if (counts > 1) {
-                        await client.sendMessage(call.from, { text: `It appears you've attempted to call us once more. We strongly recommend that you take a moment to read the message we shared above. Please do not overlook it. Regrettably, we had to proceed with blocking you due to ongoing disturbances. Thank you.` });
+                        await client.sendMessage(call.from, { text: reply.blockCaller });
                         return client.updateBlockStatus(call.from, 'block')
                             .then((x) => logger.info(`${call.from} has been blocked due to repeated spam calls.`))
                             .catch((x) => x);
@@ -1650,9 +1664,9 @@ const connect = async () => {
 
                     // Send response messages to the caller
                     let config = conf.check('dev', client.decodeJid(client.user.id), 'self');
-                    await client.sendMessage(call.from, { text: `We apologize, @${client.decodeJid(call.from).split('@')[0]} for any inconvenience. At this time, we're unable to receive ${callType} from any number. If you need help or have questions, please consider reaching out to the developer's number. Thank you.`, withTag: true });
+                    await client.sendMessage(call.from, { text: reply.unavailable.replace('@user', '@' + client.decodeJid(call.from).split('@')[0]).replace('@calltype', callType), withTag: true });
                     let contact = await client.sendContact(call.from, conf.check('dev', 'number'));
-                    await client.sendMessage(call.from, { text: `Here's the developer's contact number. We ask that you refrain from making further calls. Any subsequent calls will lead to an instant block.\n\nImportant notice: *Refrain from spamming video/voice calls or engaging in similar behaviors, or you risk being permanently blocked and banned.*` }, { quoted: contact });
+                    await client.sendMessage(call.from, { text: reply.devCtc }, { quoted: contact });
 
                     // Update the call information in the database
                     return db.check('calls', call.from) ? db.replace('calls', content, call.from) : db.modified('calls', content);
@@ -1793,10 +1807,6 @@ const connect = async () => {
         let query = body.trim().split(/ +/).slice(1).join(' ');
         const isCommand = body.startsWith(tempPrefix);
 
-        // Set global variables to indicate premium and professional user status
-        global.isPremium = senderType.getPremiumUser(message.sender);
-        global.isProfessional = senderType.getProfessionalUser(message.sender);
-
         // Group message handling
         if (message.isGroup && !isCommand) {
             // Check for URL in the message body
@@ -1924,7 +1934,7 @@ const connect = async () => {
             [...attribute.command.values()].find((x) => x.alias.find((x) => x.toLowerCase() === body.trim().split(/ +/).shift().toLowerCase())) ||
             attribute.command.get(cmdname) ||
             [...attribute.command.values()].find((x) => x.alias.find((x) => x.toLowerCase() === cmdname));
-        
+
         // If no matching command is found, return
         if (!cmd) return;
 

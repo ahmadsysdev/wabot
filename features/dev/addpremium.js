@@ -39,7 +39,19 @@ module.exports = {
      * Message to display when the time amount format is invalid.
      * @type {string}
      */
-    message: 'Invalid time amount format.\nExample query: 30d',
+    message: { regex: `Invalid time amount format.` },
+
+    /**
+     * Represents an example message for assistance.
+     * @type {string}
+     */
+    example: '@cmd 30d @user',
+
+    /**
+     * Command usage.
+     * @type {string}
+     */
+    usage: '< reply/mention > < periods >',
 
     /**
      * Indicates if the command requires a mention.
@@ -93,7 +105,7 @@ module.exports = {
             await client.sendMessage(message.from, { text: `No need, ${results.already.map(value => '@' + value.replace('@s.whatsapp.net', '')).join(', ')} ${results.already.length === 1 ? 'is already a' : 'are already'} ${data} user(s).`, withTag: true }, { quoted: message });
         }
         if (results.success[0]) {
-            await client.sendMessage(message.from, { text: `Done.` }, { quoted: message });
+            await client.sendMessage(message.from, { text: reply.done }, { quoted: message });
         }
     }
 };

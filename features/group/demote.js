@@ -14,7 +14,7 @@ module.exports = {
 	/**
 	 * Usage information for the command.
 	 */
-	use: '< mention/reply >',
+	usage: '< mention/reply >',
 	/**
 	 * Category of the command.
 	 */
@@ -46,13 +46,13 @@ module.exports = {
 	 * @param {string} options.selfId - The ID of the bot.
 	 * @param {string} options.query - The query argument of the command.
 	 */
-	async run(client, message, { command, groupAdmins ,selfId, query }) {
+	async run(client, message, { command, groupAdmins ,selfId, query, reply }) {
 		// Determine the participants to demote
 		let participants = ((message.mentions && message.mentions[0]) ? message.mentions : (message.quoted ? [message.quoted.sender] : [query.replace(/[^0-9]/g, "") + "@s.whatsapp.net"])).filter((x) => {
 			if (x === '@s.whatsapp.net') return;
 			if (x === selfId) {
 				// Prevent demoting the bot itself
-				return client.sendMessage(message.from, { text: 'Cannot demote myself.' }, { quoted: message }).then(() => void 0);
+				return client.sendMessage(message.from, { text: reply.demoteSelfError }, { quoted: message }).then(() => void 0);
 			}
 			return true;
 		});
@@ -67,14 +67,14 @@ module.exports = {
 			if (i === selfId) continue;
 			if (!groupAdmins(i)) {
 				// Check if the participant is an admin
-				await client.sendMessage(message.from, { text: `@${i.split('@')[0]} isn't an admin.`, withTag: true }, { quoted: message });
+				await client.sendMessage(message.from, { text: reply.notAdminError.replace('@user', '@'+i.split('@')[0]), withTag: true }, { quoted: message });
 				continue;
 			}
 
 			// Demote the participant
 			client.groupParticipantsUpdate(message.from, [i], 'demote')
-				.then(() => client.sendMessage(message.from, { text: 'Done.' }, { quoted: message }).then(() => void 0))
-				.catch(() => client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }).then(() => void 0));
+				.then(async () => await client.sendMessage(message.from, { text: reply.done }, { quoted: message }))
+				.catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
 		}
 	},
 };

@@ -10,7 +10,7 @@ module.exports = {
     /**
      * Usage information for the command.
      */
-    use: '< mention/reply/number >',
+    usage: '< mention/reply/number >',
     /**
      * Category of the command.
      */
@@ -36,9 +36,10 @@ module.exports = {
      */
     param: true,
     /**
-     * Message to show when usage is incorrect.
+     * Represents an example message for assistance.
+     * @type {string}
      */
-    message: 'Usage: *#add 6012xxxxxx*',
+    example: '@cmd 60123456789',
 
     /**
      * The main function to run the command.
@@ -48,7 +49,7 @@ module.exports = {
      * @param {string} args.query - The query or input provided with the command.
      * @param {string} args.prefix - The command prefix used in the message.
      */
-    async run(client, message, { query }) {
+    async run(client, message, { query, reply }) {
         // Process the query or quoted message
         query = (message.quoted ? message.quoted.sender.split('@')[0] : query.replace(/[\s-]/g, ''));
 
@@ -66,7 +67,7 @@ module.exports = {
                     if (i.status === '403') {
                         // Handle privacy settings change
                         client.sendMessage(message.from, {
-                            text: `Looks like @${i.jid.split('@')[0]} has adjusted their privacy settings, and users who haven't been saved in their contacts cannot add them to groups. Initiating a group invitation message...`,
+                            text: reply.privateInvite.replace('@user', '@' + i.jid.split('@')[0]),
                             withTag: true,
                         }, { quoted: message }).then((x) => void 0);
                         client.sendGroupInvite(message.from, i.jid, i.invite.code, i.invite.expiration)
@@ -74,13 +75,13 @@ module.exports = {
                     }
                     if (i.status == '409') {
                         // Handle already existing participants
-                        client.sendMessage(message.from, { text: `We've noticed that @${i.jid.split('@')[0]} is already a participant of this group.`, withTag: true }, { quoted: message }).then(() => void 0);
+                        client.sendMessage(message.from, { text: reply.alreadyJoin.replace('@user', '@' + i.jid.split('@')[0]), withTag: true }, { quoted: message }).then(() => void 0);
                     }
                 }
             })
             .catch((err) => {
                 // Handle errors
-                client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }).then((x) => void 0);
+                client.sendMessage(message.from, { text: RemotePlayback.error }, { quoted: message }).then((x) => void 0);
             });
     },
 };

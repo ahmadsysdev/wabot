@@ -27,8 +27,9 @@ module.exports = {
      * Main function to run the command.
      * @param {Object} client - The WhatsApp client instance.
      * @param {Object} message - The message that triggered the command.
+     * @param {Object} options.reply - The reply message object
      */
-    async run(client, message) {
+    async run(client, message, { reply }) {
         // Fetch developer's contact information from the configuration
         const obj = conf.check('dev', 'number');
 
@@ -48,9 +49,9 @@ module.exports = {
         }
 
         // Add an important message regarding contacting the developer
-        text.push('\nImportant message: AVOID BOTHERING THE DEVELOPER WITH SPAMMING VIDEO/VOICE CALLS OR SIMILAR ACTIONS, OR YOU MAY BE BLOCKED AND BANNED PERMANENTLY.');
+        text.push(reply.devCtc);
         
         // Send the constructed text message to the user
-        return await client.sendMessage(message.from, { text: text.join('\n'), withTag: true }, { quoted: message });
+        return await client.sendMessage(message.from, { text: text.join('\n'), withTag: true }, { quoted: contact });
     }
 }

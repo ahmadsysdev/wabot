@@ -56,7 +56,7 @@ module.exports = {
      * @param {Object} message - The message that triggered the command.
      * @param {Object} param - The command parameters.
      */
-    async run(client, message, { command, logger }) {
+    async run(client, message, { command, logger, reply }) {
         let image;
         const _path = path.join(__dirname, '..', '..', 'temp', Date.now() + '.png');
 
@@ -71,7 +71,7 @@ module.exports = {
         }
 
         if (!image) {
-            return await client.sendMessage(message.from, { text: 'Please send or reply with an image.' }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.imageError }, { quoted: message });
         }
 
         return client.updateProfilePicture(message.from, { url: _path })
@@ -85,7 +85,7 @@ module.exports = {
                     fs.unlinkSync(_path);
                 }
                 logger.error(x);
-                await client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message });
+                await client.sendMessage(message.from, { text: reply.error }, { quoted: message });
             });
     }
 }

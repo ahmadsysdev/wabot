@@ -27,7 +27,7 @@ module.exports = {
      * Command usage syntax.
      * @type {string}
      */
-    use: '< text/reply >',
+    usage: '< text/reply >',
 
     /**
      * Indicates if this command requires to be used in a group.
@@ -46,6 +46,7 @@ module.exports = {
      * @type {boolean}
      */
     param: true,
+    example: '@cmd on',
 
     /**
      * Main function to run the command.
@@ -53,7 +54,7 @@ module.exports = {
      * @param {Object} message - The message that triggered the command.
      * @param {Object} param - The command parameters.
      */
-    async run(client, message, { query, command, db }) {
+    async run(client, message, { query, command, db, reply }) {
         query = query !== '' ? query : (message.quoted && message.quoted.text || '');
 
         if (query === '') {
@@ -70,9 +71,10 @@ module.exports = {
         const set = data ? db.replace('left', content, message.from, 'id') : db.modified('left', content);
 
         if (!set) {
-            return await client.sendMessage(message.from, { text: 'An error occurred. Failed to detect error details, but this might be a problem with the database.' }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.error }, { quoted: message });
         }
 
-        return await client.sendMessage(message.from, { text: 'Leave message handler successfully set.' }, { quoted: message });
+        const name = 'Leave message';
+        return await client.sendMessage(message.from, { text: reply.successfullySet.replace('@cmdname', name) }, { quoted: message });
     }
 }

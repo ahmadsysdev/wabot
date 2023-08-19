@@ -2,11 +2,11 @@ module.exports = {
     /**
      * Name of the command.
      */
-    name: 'left',
+    name: 'leavehandler',
     /**
      * Aliases for the command.
      */
-    alias: ['lefthandler', 'leavehandler', 'lfthndler'],
+    alias: ['lefthandler', 'left', 'lfthndler'],
     /**
      * Description of the command.
      */
@@ -18,7 +18,7 @@ module.exports = {
     /**
      * Usage syntax for the command.
      */
-    use: '< on/off >',
+    usage: '< on/off >',
     /**
      * Indicates if this command requires to be used in a group.
      */
@@ -31,6 +31,7 @@ module.exports = {
      * Mapping of command options to their display labels.
      */
     option: ['on', 'off'],
+    example: '@cmd on',
     /**
      * The main function to run the command.
      * @param {Object} client - The WhatsApp client instance.
@@ -42,14 +43,14 @@ module.exports = {
      * @param {Object} options.attribute - Additional attributes associated with the command.
      * @param {Object} options.cookies - Cookies associated with the command.
      */
-    async run(client, message, { arg, prefix, command, attribute, cookies }) {
+    async run(client, message, { arg, prefix, command, attribute, cookies, reply }) {
         const data = db.check('left', message.from, 'id');
         const content = { id: message.from };
         var turn = data ? (arg === 'on' ? void 0 : db.delete('left', message.from, 'id')) : (arg === 'on' ? db.modified('left', content) : void 0);
-        if (!turn) return await client.sendMessage(message.from, { text: `Leave handler message has been turned ${arg} before.` }, { quoted: message });
+        if (!turn) return await client.sendMessage(message.from, { text: reply.alreadySwitched.replace('@cmdname', this.name.strCharAt(0).toUpperCase() + this.name.slice(1)).replace('@switch', arg) }, { quoted: message });
 
         let text = [];
-        text.push(`Leave message handler turned ${arg} successfully. `);
+        text.push(reply.switched.replace('@cmdname', this.name.strCharAt(0).toUpperCase() + this.name.slice(1)).replace('@switch', arg));
         if (arg === 'on') {
             text[0] += 'You can set the handler message by using this command:';
             text.push(`*${prefix}setleave <text/reply>*\n`);

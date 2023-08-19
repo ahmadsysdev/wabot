@@ -31,7 +31,7 @@ module.exports = {
      * Command usage.
      * @type {string}
      */
-    use: '< link/reply >',
+    usage: '< link/reply >',
 
     /**
      * Regular expression to match Instagram links.
@@ -49,7 +49,7 @@ module.exports = {
      * Message to display when no Instagram link is found.
      * @type {string}
      */
-    message: `We couldn't find an Instagram link in the message.`,
+    message: { regex: `We couldn't find an Instagram link in the message.` },
 
     /**
      * Indicates if this command requires parameter.
@@ -95,7 +95,7 @@ module.exports = {
 
                     // Pipe the stream to a file and send the media to the user
                     response.data.pipe(createWriteStream(fullpath)).on('finish', async () => {
-                        return await client.sendMedia(message.from, fullpath, 'Done.', message);
+                        return await client.sendMedia(message.from, fullpath, reply.done, message);
                     });
                 });
             });

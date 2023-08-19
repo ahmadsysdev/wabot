@@ -3,13 +3,13 @@ module.exports = {
      * Command name.
      * @type {string}
      */
-    name: 'welcome',
+    name: 'welcomehandler',
 
     /**
      * Command aliases.
      * @type {string[]}
      */
-    alias: ['welc', 'welchandler'],
+    alias: ['welc', 'welchandler', 'welcome'],
 
     /**
      * Command description.
@@ -27,7 +27,7 @@ module.exports = {
      * Command usage and options.
      * @type {string}
      */
-    use: '< on/off >',
+    usage: '< on/off >',
     option: ['on', 'off'],
 
     /**
@@ -41,6 +41,7 @@ module.exports = {
      * @type {boolean}
      */
     isAdmin: true,
+    example: '@cmd on',
 
     /**
      * Main function to run the command.
@@ -48,7 +49,7 @@ module.exports = {
      * @param {Object} message - The message that triggered the command.
      * @param {Object} options - Command options such as 'arg', 'prefix', 'command', etc.
      */
-    async run(client, message, { arg, prefix, command }) {
+    async run(client, message, { arg, prefix, command, reply }) {
         // Check if the welcome handler is already enabled
         const data = db.check('welcome', message.from, 'id');
         const content = { id: message.from };
@@ -58,11 +59,11 @@ module.exports = {
 
         // Inform the user about the status of the welcome handler
         if (!turn) {
-            return await client.sendMessage(message.from, { text: `Welcome handler message has been ${arg} before.` }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.alreadySwitched.replace('@cmdname', this.name.charAt(0).toUpperCase() + this.name.slice(1)).replace('@switch', arg) }, { quoted: message });
         }
 
         // Construct a response message regarding the status of the welcome handler
-        let text = [`Welcome message handler turned ${arg} successfully. `];
+        let text = [reply.switched.replace('@cmdname', this.name.charAt(0).toUpperCase() + this.name.slice(1)).replace('@switch', arg)];
 
         // Provide instructions on how to set the welcome handler message
         if (arg === 'on') {

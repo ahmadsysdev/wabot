@@ -38,8 +38,20 @@ module.exports = {
     /**
      * Message to display when the time amount format is invalid.
      * @type {string}
+    */
+    message: { regex: `Invalid time amount format.` },
+
+    /**
+     * Represents an example message for assistance.
+     * @type {string}
      */
-    message: 'Invalid time amount format.\nExample query: 30d',
+    example: '@cmd 30d @user',
+
+    /**
+     * Command usage.
+     * @type {string}
+     */
+    usage: '< reply/mention > < periods >',
 
     /**
      * Indicates if the command requires a mention.
@@ -55,7 +67,7 @@ module.exports = {
      * @param {Object} options.mentioned - Mentioned participant.
      * @param {boolean} options.isGroup - Indicates if the command was triggered in a group.
      */
-    async run(client, message, { queries, mentioned, isGroup }) {
+    async run(client, message, { queries, mentioned, isGroup, reply }) {
         // If not in a group, add the sender as a mentioned user
         if (!isGroup) mentioned.push(message.from);
 
@@ -68,7 +80,7 @@ module.exports = {
 
         // Import the addProfessional function
         const { addProfessional } = require('../../lib/senderType');
-        
+
         // Process each mentioned participant
         mentioned.forEach(participant => {
             // Check if participant is already a professional user
@@ -93,7 +105,7 @@ module.exports = {
             await client.sendMessage(message.from, { text: `No need, ${results.already.map(value => '@' + value.replace('@s.whatsapp.net', '')).join(', ')} ${results.already.length === 1 ? 'is already a' : 'are already'} ${data} user(s).`, withTag: true }, { quoted: message });
         }
         if (results.success[0]) {
-            await client.sendMessage(message.from, { text: `Done.` }, { quoted: message });
+            await client.sendMessage(message.from, { text: reply.done }, { quoted: message });
         }
     }
 };

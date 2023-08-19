@@ -14,7 +14,7 @@ module.exports = {
 	/**
 	 * Usage information for the command.
 	 */
-	use: '< reply >',
+	usage: '< reply >',
 	/**
 	 * Category of the command.
 	 */
@@ -39,7 +39,7 @@ module.exports = {
 	 * @param {Object} options - The options passed to the command.
 	 * @param {boolean} options.selfAdmin - Indicates if the bot is a self-administrator.
 	 */
-	async run(client, message, { selfAdmin }) {
+	async run(client, message, { selfAdmin, reply }) {
 		const { quoted } = message;
 		if (quoted.self) {
 			// Delete the quoted message and the triggering message
@@ -49,15 +49,15 @@ module.exports = {
                         await client.sendMessage(message.from, { delete: message.key });
                     }
                 })
-				.catch(() => client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }).then(() => void 0));
+				.catch(() => client.sendMessage(message.from, { text: RemotePlayback.error }, { quoted: message }).then(() => void 0));
 		} else {
 			if (!selfAdmin) {
-				return await client.sendMessage(message.from, { text: "In order to delete the message, I need to have admin privileges." }, { quoted: message });
+				return await client.sendMessage(message.from, { text: RemotePlayback.needAdminDelete }, { quoted: message });
 			}
 			// Delete the quoted message and the triggering message (admin required)
 			client.sendMessage(message.from, { delete: quoted.key })
-				.then(() => client.sendMessage(message.from, { delete: message.key }).then(() => void 0))
-				.catch(() => client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }).then(() => void 0));
+				.then(async () => await client.sendMessage(message.from, { delete: message.key }))
+				.catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
 		}
 	}
 }

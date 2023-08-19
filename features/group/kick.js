@@ -18,7 +18,7 @@ module.exports = {
     /**
      * Usage syntax for the command.
      */
-    use: '< mention/reply >',
+    usage: '< mention/reply >',
     /**
      * Indicates if this command requires to mention participants.
      */
@@ -45,15 +45,15 @@ module.exports = {
      * @param {import('whatsapp-web.js').GroupMetadata} options.groupMetadata - The metadata of the group.
      * @param {string} options.selfId - The ID of the bot itself.
      */
-    async run(client, message, { query, command, groupMetadata, selfId }) {
+    async run(client, message, { query, command, groupMetadata, selfId, reply }) {
         // Extract participants to be removed based on mentions, reply, or query
         let participant = ((message.mentions && message.mentions[0]) ? message.mentions : (message.quoted ? [message.quoted.sender] : [query.replace(/[^0-9]/g, "") + "@s.whatsapp.net"])).filter((x) => {
             if (x === '@.whatsapp.com') return;
-            if (x === selfId) return client.sendMessage(message.from, { text: 'Cannot remove myself.' }, { quoted: message }).then(() => void 0) && undefined;
+            if (x === selfId) return client.sendMessage(message.from, { text: reply.removeSelfError }, { quoted: message }).then(() => void 0) && undefined;
             return true;
         });
         if (participant.length === 0) return; // No participants to remove
         return client.groupParticipantsUpdate(message.from, participant, 'remove')
-            .catch(() => client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }).then(() => void 0));
+            .catch(() => client.sendMessage(message.from, { text: reply.error }, { quoted: message }).then(() => void 0));
     }
 }

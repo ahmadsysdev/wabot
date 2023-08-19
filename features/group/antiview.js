@@ -14,7 +14,7 @@ module.exports = {
 	/**
 	 * Usage information for the command.
 	 */
-	use: '< on/off >',
+	usage: '< on/off >',
 	/**
 	 * Category of the command.
 	 */
@@ -31,6 +31,7 @@ module.exports = {
 	 * Options for the command.
 	 */
 	option: ['on', 'off'],
+	example: '@cmd on',
 
 	/**
 	 * The main function to run the command.
@@ -40,7 +41,7 @@ module.exports = {
 	 * @param {string} args.arg - The argument provided with the command.
 	 * @param {string} args.command - The name of the command used.
 	 */
-	async run(client, message, { arg, command }) {
+	async run(client, message, { arg, command, reply }) {
 		// Check if antiview is enabled for the group
 		const data = db.check('antiview', message.from, 'id');
 		const content = { id: message.from };
@@ -49,9 +50,9 @@ module.exports = {
 
 		// Return appropriate response based on the action
 		if (!turn) {
-			return await client.sendMessage(message.from, { text: `Anti viewonce message has been turned ${arg} before.` }, { quoted: message });
+			return await client.sendMessage(message.from, { text: reply.switched.replace('@cmdname', this.name).replace('@switch', arg) }, { quoted: message });
 		} else {
-			return await client
+			return await client.sendMessage(message.from, { text: reply.switched.replace('@cmdname', this.name).replace('@switch', arg) }, { quoted: message })
         }
     }
 }

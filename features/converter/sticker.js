@@ -12,7 +12,7 @@ module.exports = {
     ],
     desc: 'Convert a video or image into a sticker message. You can easily change the sticker author and sticker name by following the example.',
     category: 'converter',
-    use: '< reply/caption > [author/packname]',
+    usage: '< reply/caption > [author/packname]',
     media: { imageMessage: true, videoMessage: true, stickerMessage: true, documentMessage: true },
     wait: true,
     /**

@@ -14,7 +14,7 @@ module.exports = {
     /**
 	 * Usage information for the command.
 	 */
-	use: '[ group link ]',
+	usage: '[ group link ]',
 	/**
 	 * Category of the command.
 	 */
@@ -35,7 +35,7 @@ module.exports = {
 	 * @param {Object} options.groupMetadata - The metadata of the group.
 	 * @param {string} options.query - The query argument of the command.
 	 */
-	async run(client, message, { groupMetadata, query }) {
+	async run(client, message, { groupMetadata, query, reply }) {
 		const regex = /chat.whatsapp.com\/([\w\d]*)/gi;
 
 		// Check if the query is a group invitation link

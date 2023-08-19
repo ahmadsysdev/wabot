@@ -19,8 +19,8 @@ module.exports = {
     * @param {Object} message - The message that triggered the command.
     */
     async run(client, message) {
-        return client.groupInviteCode(message.from)
+        return client.groupInviteCode(message.from, { reply })
             .then(async (x) => await client.sendMessage(message.from, { text: `https://chat.whatsapp.com/${x}` }, { quoted: message }))
-            .catch(async () => await client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }));
+            .catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
     },
 };

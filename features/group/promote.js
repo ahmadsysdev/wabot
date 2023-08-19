@@ -27,7 +27,7 @@ module.exports = {
      * Command usage.
      * @type {string}
      */
-    use: '< mention/reply >',
+    usage: '< mention/reply >',
 
     /**
      * Indicates if this command requires to be used in a group.
@@ -63,10 +63,9 @@ module.exports = {
      * @param {function} options.groupAdmins - Function to check if a participant is an admin.
      * @param {string} options.query - The user input/query.
      */
-    async run(client, message, { command, selfId, groupAdmins, query }) {
+    async run(client, message, { command, selfId, groupAdmins, query, reply }) {
         let participant = ((message.mentions && message.mentions[0]) ? message.mentions : (message.quoted ? [message.quoted.sender] : [query.replace(/[^0-9]/g, "") + "@s.whatsapp.net"])).filter((x) => {
             if (x === '@s.whatsapp.net') return;
-            if (x === selfId) return client.sendMessage(message.from, { text: 'Cannot remove myself' }, { quoted: message }).then(() => void 0);
             return true;
         });
 
@@ -80,13 +79,13 @@ module.exports = {
             }
 
             if (groupAdmins(i)) {
-                await client.sendMessage(message.from, { text: `@${i.split('@')[0]} is already an admin.`, withTag: true }, { quoted: message });
+                await client.sendMessage(message.from, { text: reply.alreadyAdmin.replace('@user', i.split('@')[0]), withTag: true }, { quoted: message });
                 continue;
             }
 
             client.groupParticipantsUpdate(message.from, [i], 'promote')
-                .then(async () => await client.sendMessage(message.from, { text: 'Done.' }, { quoted: message }))
-                .catch(async () => await client.sendMessage(message.from, { text: `An error occurred while trying to promote @${i.split('@')[0]} to an admin.` }, { quoted: message }));
+                .then(async () => await client.sendMessage(message.from, { text: reply.done }, { quoted: message }))
+                .catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
         }
     }
 }

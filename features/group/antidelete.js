@@ -14,7 +14,7 @@ module.exports = {
     /**
      * Usage information for the command.
      */
-    use: '< on/off >',
+    usage: '< on/off >',
     /**
      * Category of the command.
      */
@@ -31,6 +31,7 @@ module.exports = {
      * Indicates if the command requires admin privileges.
      */
     isAdmin: true,
+    example: '@cmd on',
 
     /**
      * The main function to run the command.
@@ -42,7 +43,7 @@ module.exports = {
      * @param {string} args.command - The name of the command used.
      * @param {string} args.stanza - The stanza of the message.
      */
-    async run(client, message, { arg, prefix, command, stanza }) {
+    async run(client, message, { arg, prefix, command, stanza, reply }) {
         // Check if antidelete is enabled for the user
         const data = db.check('antidel', message.from, 'id');
         const content = { id: message.from };
@@ -51,9 +52,9 @@ module.exports = {
 
         // Return appropriate response based on the action
         if (!turn) {
-            return await client.sendMessage(message.from, { text: `Antidelete has been turned ${arg} before.` }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.alreadySwitched.replace('@cmdname', this.name).replace('@switch', arg) }, { quoted: message });
         } else {
-            return await client.sendMessage(message.from, { text: `Antidelete message turned ${arg} successfully` }, { quoted: message });
+            return await client.sendMessage(message.from, { text: reply.switched.replace('@cmdname', this.name).replace('@switch', arg) }, { quoted: message });
         }
     }
 }

@@ -27,7 +27,7 @@ module.exports = {
      * Command usage information.
      * @type {string}
      */
-    use: '< text/reply >',
+    usage: '< text/reply >',
 
     /**
      * Indicates if this command requires to be used in a group.
@@ -52,6 +52,7 @@ module.exports = {
      * @type {boolean}
      */
     param: true,
+    example: 'Hello world!',
 
     /**
      * Main function to run the command.
@@ -59,14 +60,14 @@ module.exports = {
      * @param {Object} message - The message that triggered the command.
      * @param {Object} param - The command parameters.
      */
-    async run(client, message, { query }) {
+    async run(client, message, { query, reply }) {
         if (query && typeof query !== 'undefined') {
             return await client.groupUpdateDescription(message.from, query)
-                .catch(async () => await client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }));
+                .catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
         }
         if (message.quoted) {
             return await client.groupUpdateDescription(message.from, message.quoted.text)
-                .catch(async () => await client.sendMessage(message.from, { text: 'An error occurred.' }, { quoted: message }));
+                .catch(async () => await client.sendMessage(message.from, { text: reply.error }, { quoted: message }));
         }
     }
 }
