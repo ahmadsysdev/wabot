@@ -49,7 +49,7 @@ module.exports = {
      * Message to display when no Instagram link is found.
      * @type {string}
      */
-    message: { regex: `We couldn't find an Instagram link in the message.` },
+    message: { regex: `We couldn't find a Instagram link in the message.` },
 
     /**
      * Indicates if this command requires parameter.
@@ -63,7 +63,7 @@ module.exports = {
      * @param {Object} message - The message that triggered the command.
      * @param {Object} options.logger - Logger instance.
      */
-    async run(client, message, { queries, regex, logger }) {
+    async run(client, message, { queries, regex, logger, reply }) {
         // Extract the Instagram link from the queries
         const link = queries.match(regex)?.[0];
 

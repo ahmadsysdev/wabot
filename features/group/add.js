@@ -81,7 +81,7 @@ module.exports = {
             })
             .catch((err) => {
                 // Handle errors
-                client.sendMessage(message.from, { text: RemotePlayback.error }, { quoted: message }).then((x) => void 0);
+                client.sendMessage(message.from, { text: reply.error }, { quoted: message }).then((x) => void 0);
             });
     },
 };
