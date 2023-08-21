@@ -1,6 +1,7 @@
 const path = require('path');
 const { default: axios } = require("axios");
 const { createWriteStream } = require('fs');
+const ytdl = require('ytdl-core');
 
 module.exports = {
     /**
@@ -70,50 +71,18 @@ module.exports = {
         // Extract the YouTube link from the queries
         const link = queries.match(regex)?.[0];
 
-        // Create axios instance
-        const instance = axios.create({
-            withCredentials: true,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-        });
-
         // Get video details
-        const data = {k_query: link, k_page: 'home', hl: 'en', q_auto: '0'};
-        instance.post('https://www.y2mate.com/mates/analyzeV2/ajax', data).then((response) => {
-            const vid = response.data.vid;
-            const res = response.data.links?.mp4;
-            const channel = response.data.a;
-            let int = 0;
-            Object.keys(res).forEach((k) => {
-                if (k > int) {
-                    int = parseInt(k);
-                }
-            })
-            const k = res[int].k;
-            instance.post('https://www.y2mate.com/mates/convertV2/index', { vid, k }).then(async (response) => {
-                if (response.data.c_status === 'CONVERTED') {
-                    const { dlink, ftype, fquality, title } = response.data;
-                    const caption = `Title: ${title}\nChannel: ${channel}\nFile type: ${ftype}\nVideo resolution: ${fquality}p`;
-                    axios({
-                        method: 'get',
-                        url: dlink,
-                        responseType: 'stream'
-                    }).then(response => {
-                        const filename = decodeURIComponent(response.headers['content-disposition'].match(/filename="(.+)"/)?.[1]);
-                        const fullpath = path.join('.', 'temp', filename);
-
-                        // Pipe the stream to a file and send the media
-                        response.data.pipe(createWriteStream(fullpath).on('finish', async () => {
-                            return await client.sendMedia(message.from, fullpath, caption, message);
-                        }))
-                    })
-                }
-                else if (response.data.c_status === 'FAILED') {
-                    return await client.sendMessage(message.from, { text: reply.error }, { quoted: message });
-                }
-            })
-        }).catch((err) => logger.error(err));
+        ytdl.getInfo(link).then((info) => {
+            const { title, viewCount, publishDate, description } = info.videoDetails;
+            const { name, user } = info.videoDetails?.author;
+            const filepath = path.join('.', 'temp', `${title}.mp4`);
+            const caption = `❏ *Title*: ${title}\n❏ *Publish date*: ${publishDate}\n❏ *Views*: ${viewCount}\n❏ *Channel name*: ${name}\n❏ *Username*: ${user}\n❏ *Description*: ${description}`;
+            ytdl(link, { quality: 'highestvideo' }).pipe(createWriteStream(filepath).on('finish', async () => {
+                return await client.sendMedia(message.from, filepath, caption)
+            }))
+        }).catch(async (err) => {
+            logger.error(err);
+            return await client.sendMessage(message.from, { text: err.message }, { quoted: message });
+        })
     }
 }
