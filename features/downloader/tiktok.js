@@ -8,7 +8,7 @@ module.exports = {
      * Command aliases
      * @type {Object}
      */
-    alias: ['tiktokdl'],
+    alias: ['tiktokdl', 'tikdl'],
     /**
      * Command description.
      * @type {string}

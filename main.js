@@ -1110,9 +1110,7 @@ const connect = async () => {
 
                 try {
                     // Try to extract mentionedJid from the contextInfo of the specific content type
-                    message.mentions = message.message[message.type].contextInfo
-                        ? message.message[message.type].contextInfo.mentionedJid
-                        : [];
+                    message.mentions = message.message[message.type].contextInfo?.mentionedJid || [];
                 } catch {
                     // If contextInfo doesn't exist or the extraction fails, set 'mentions' to an empty array
                     message.mentions = [];
@@ -1161,6 +1159,13 @@ const connect = async () => {
                             message: quoted.quotedMessage,
                         };
                     }
+
+                    // 
+                    const qtype = Object.keys(quoted.quotedMessage)[0];
+
+                    // Extract mentionedJid from contextInfo
+                    message.quoted.mentions = quoted.quotedMessage[qtype].contextInfo?.mentionedJid || [];
+
                     // Determine if the sender of the quoted message is the same as the current user
                     message.quoted.self = message.quoted.sender === client.decodeJid(client.user.id);
 
@@ -1468,13 +1473,19 @@ const connect = async () => {
 
         // Check if the command requires a query and return an error if no query is provided
         if (cmd.options.query && !query) {
-            var stanza = await client.sendMessage(message.from, { text: reply.query }, { quoted: message });
+            var stanza = await client.sendMessage(message.from, { text: cmd.options.message?.query || reply.query }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
         }
 
         // Check if the command requires a parameter or quoted message and return an error if no query or quoted message is provided
         if (cmd.options.param && !queries) {
-            var stanza = await client.sendMessage(message.from, { text: reply.param }, { quoted: message });
+            var stanza = await client.sendMessage(message.from, { text: cmd.options.message?.param || reply.param }, { quoted: message });
+            return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
+        }
+
+        // Check if the command requires a parameter or quoted message and return an error if no query or quoted message is provided
+        if (cmd.options.queries && !queries) {
+            var stanza = await client.sendMessage(message.from, { text: cmd.options.message?.queries || reply.param }, { quoted: message });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
         }
 
@@ -1515,7 +1526,7 @@ const connect = async () => {
 
         // If the command has the 'wait' option, send a wait message to the user
         if (cmd.options.wait) {
-            client.sendMessage(message.from, { text: reply.wait }, { quoted: message }).then(() => void 0);
+            await client.sendMessage(message.from, { text: reply.wait }, { quoted: message }).then(() => void 0);
         }
 
         // Print execution information to the console
@@ -1524,9 +1535,9 @@ const connect = async () => {
         // Execute the command's run method and handle success and failure
         cmd.run(client, message, {
             query, attribute, args, arg, baileys, prefix, command, queries,
-            response, dev, selfId: client.decodeJid(client.user.id),
+            response, dev, selfId: client.decodeJid(client.user.id), conf,
             groupMetadata, groupSubject, groupAdmins, isAdmin, selfAdmin, queue,
-            stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned, reply
+            stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned, reply, cmd, cookies
         })
             .then(() => {
                 logger.info(`Initiated the ${command} command from ${from} | ${isGroup ? groupSubject : username}`);

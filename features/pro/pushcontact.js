@@ -34,7 +34,6 @@ module.exports = {
      * @type {boolean}
      */
     query: true,
-    isDev: true,
     usage: '< text/reply >',
     example: '@cmd Hello world!',
     

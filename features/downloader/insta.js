@@ -13,7 +13,7 @@ module.exports = {
      * Command aliases.
      * @type {string[]}
      */
-    alias: ['snapinsta', 'igdown'],
+    alias: ['snapinsta', 'igdown', 'igdl'],
 
     /**
      * Command description.

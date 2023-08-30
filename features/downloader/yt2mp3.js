@@ -2,25 +2,26 @@ const path = require('path');
 const { default: axios } = require("axios");
 const { createWriteStream } = require('fs');
 const ytdl = require('ytdl-core');
+const Ffmpeg = require('fluent-ffmpeg');
 
 module.exports = {
     /**
      * Command name.
      * @type {string}
      */
-    name: 'ytdl',
+    name: 'yt2mp3',
 
     /**
      * Command aliases.
      * @type {Object}
      */
-    alias: ['ytdown', 'youtube', 'yt'],
+    alias: ['ytmp3'],
 
     /**
      * Command description.
      * @type {string}
      */
-    desc: 'Youtube video downloader.',
+    desc: 'Convert YouTube videos to audio MP3.',
     /**
      * Command category.
      * @type {string}
@@ -73,13 +74,15 @@ module.exports = {
 
         // Get video details
         ytdl.getInfo(link).then((info) => {
-            const { title, viewCount, publishDate, description } = info.videoDetails;
-            const { name, user } = info.videoDetails?.author;
-            const filepath = path.join('.', 'temp', `${title}.mp4`);
-            const caption = `❏ *Title*: ${title}\n❏ *Publish date*: ${publishDate}\n❏ *Views*: ${viewCount}\n❏ *Channel name*: ${name}\n❏ *Username*: ${user}\n❏ *Description*: ${description}`;
-            ytdl(link, { quality: 'highestvideo' }).pipe(createWriteStream(filepath).on('finish', async () => {
-                return await client.sendMedia(message.from, filepath, caption, message)
-            }))
+            const { title } = info.videoDetails;
+            const filepath = path.join('.', 'temp', `${title}.mp3`);
+            const stream = ytdl(link, { quality: 'highestaudio' });
+            Ffmpeg(stream).audioBitrate(128).save(filepath).on('end', async () => {
+                return await client.sendMedia(message.from, filepath, undefined, message)
+            }).on('error', async (err) => {
+                logger.error(err);
+                return await client.sendMessage(message.from, { text: reply.error }, { quoted: message });
+            });
         }).catch(async (err) => {
             logger.error(err);
             return await client.sendMessage(message.from, { text: err.message }, { quoted: message });

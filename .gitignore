@@ -6,3 +6,4 @@ config/owner.json
 database/
 debug/
 session/
+config/credentials.json
