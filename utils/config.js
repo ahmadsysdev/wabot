@@ -38,33 +38,35 @@ class config {
         }
 
         /**
-         * Add a new JSON file to the 'config' directory with the provided name and content.
+         * Modify an existing JSON file in the config by adding new content.
          * @param {string} name - The name of the JSON file (without extension).
-         * @param {*} [content] - The content to be written to the JSON file (default: '[]').
-         * @returns {boolean|undefined} - Returns 'true' if the file was added successfully, or 'undefined' on failure.
+         * @param {*} content - The content to add to the JSON file.
+         * @returns {boolean|undefined} - Returns `true` if the modification was successful, `undefined` otherwise.
          */
-        this.add = function (name, content) {
-            // Return if the 'name' parameter is not provided
-            if (!name) return;
+        this.modified = function (name, content) {
+            // Check if the 'name' and 'content' parameters are provided
+            if (!name || !content) return;
 
-            // Generate the full file path of the JSON file within the 'config' directory
+            // Generate the full file path
             const filepath = path.join(this.path, name + '.json');
 
-            // Return if the file already exists
-            if (fs.existsSync(filepath)) return;
+            // If the file doesn't exist, add it with default content
+            if (!fs.existsSync(filepath)) this.add(name);
 
             try {
-                // Set default content to '[]' if not provided
-                content = content ? content : '[]';
+                // Read and parse existing data from the JSON file
+                let data = JSON.parse(fs.readFileSync(filepath));
 
-                // Write the content to the JSON file
-                fs.writeFileSync(filepath, content);
+                // Add the new content to the existing data
+                data.push(content);
 
-                // Return 'true' to indicate successful addition
+                // Write the updated data back to the JSON file
+                fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
+
+                // Return 'true' to indicate successful modification
                 return true;
             } catch (err) {
-                // Log the error and return 'undefined' on failure
-                console.log(err);
+                // Return 'undefined' on failure
                 return;
             }
         }
