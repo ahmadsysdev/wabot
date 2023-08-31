@@ -23,7 +23,7 @@ module.exports = {
      * Indicates if this command is only available for professionals.
      * @type {boolean}
      */
-    // isProfessional: true,
+    isProfessional: true,
 
     /**
      * Command usage.
