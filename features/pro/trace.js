@@ -1,5 +1,4 @@
 const { findPhoneNumbersInText, parsePhoneNumber } = require("libphonenumber-js");
-const truecallerjs = require("truecallerjs");
 
 module.exports = {
     /**
@@ -41,6 +40,9 @@ module.exports = {
      * @param {boolean} options.isGroup - Indicates if the command was triggered in a group.
      */
     async run(client, message, { queries, mentioned, isGroup, conf, prefix, reply }) {
+        delete require.cache[require.resolve('axios')];
+        const truecallerjs = require("truecallerjs");
+
         // Extract mentions and phone numbers from the message
         const mentions = message.mentions.concat(message.quoted?.mentions, [message.quoted?.sender], mentioned);
         const data = findPhoneNumbersInText(queries + mentions.join(' '), 'MY');
