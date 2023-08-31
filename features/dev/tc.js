@@ -72,7 +72,6 @@ module.exports = {
             // Prepare login data and request OTP
             const { country, nationalNumber, number } = data[0]['number'];
             const login_data = await truecallerjs.login(number);
-            console.log(login_data)
             var stanza = await client.sendMessage(message.from, { text: 'Please enter OTP number:' }, { quoted: message });
             cookies.get(message.from).set('login_data', { number, nationalNumber, country, login_data });
             return cookies.get(message.from).set(stanza.key.id, { cmd, prefix, noType: true });
@@ -80,13 +79,15 @@ module.exports = {
 
         // Verify OTP
         const { country, nationalNumber, number, login_data } = cookies.get(message.from).get('login_data');
-        console.log(JSON.stringify(login_data, null, 2))
-        console.log(otp)
         const response = await truecallerjs.verifyOtp(number, login_data, otp[0]);
 
         // Handle OTP verification responses
         if (response.status === 2 && !response.suspended) {
-            conf.modified('credentials', { app: 'truecaller', installationId: response.installationId, phones: response.phones });
+            if (conf.check('credentials', 'truecaller', 'app')) {
+                conf.replace('credentials', { app: 'truecaller', installationId: response.installationId, phones: response.phones }, 'truecaller', 'app')
+            } else {
+                conf.modified('credentials', { app: 'truecaller', installationId: response.installationId, phones: response.phones });
+            }
             const text = [`Login Successfull!`];
             text.push(`User ID: ${response.userId}`);
             text.push(`Country: ${country}`);

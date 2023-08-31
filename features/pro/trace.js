@@ -1,4 +1,4 @@
-const { findPhoneNumbersInText } = require("libphonenumber-js");
+const { findPhoneNumbersInText, parsePhoneNumber } = require("libphonenumber-js");
 const truecallerjs = require("truecallerjs");
 
 module.exports = {
@@ -21,7 +21,7 @@ module.exports = {
     category: 'professional',
 
     /**
-     * Indicates if this command is only available for professional.
+     * Indicates if this command is only available for professionals.
      * @type {boolean}
      */
     // isProfessional: true,
@@ -40,44 +40,63 @@ module.exports = {
      * @param {Object} options.mentioned - Mentioned participant.
      * @param {boolean} options.isGroup - Indicates if the command was triggered in a group.
      */
-    async run(client, message, { queries, mentioned, isGroup, conf, prefix }) {
-        // If not in a group, add the sender as a mentioned user
-        if (!isGroup) mentioned.push(message.from);
-
+    async run(client, message, { queries, mentioned, isGroup, conf, prefix, reply }) {
+        // Extract mentions and phone numbers from the message
         const mentions = message.mentions.concat(message.quoted?.mentions, [message.quoted?.sender], mentioned);
         const data = findPhoneNumbersInText(queries + mentions.join(' '), 'MY');
-        const number = [];
+        let number = [];
         data.forEach((x) => {
             number.push(x.number.number);
         });
-        number.filter((value, index, self) => {
+        // Remove duplicate phone numbers
+        number = number.filter((value, index, self) => {
             return self.indexOf(value) === index;
-        })
-        
+        });
+
+        // Get the Truecaller API key
         const key = conf.check('credentials', 'truecaller', 'app');
-        if (!key) return await client.sendMessage(message.from, { text: `Please login your account first. Use ${prefix}tc <phone> to login.` }, { quoted: message });
-        const response = await truecallerjs.bulkSearch(number.join(','), key.phones[0]?.countryCode, key.installationId);
-        if (!response.data) return await client.sendMessage(message.from, { text: response.message }, { quoted: message });
-        if (!response.data[0]) return await client.sendMessage(message.from, { text: 'Not found.' }, { quoted: message });
-        const text = [];
-        for (let x of response.data) {
-            const info = [];
-            info.push(`❏ Name: ${x.value.name}`)
-            info.push(`❏ Number: ${x.key}`)
-            info.push(`❏ Carrier: ${x.value?.phones[0].carrier}`)
-            info.push(`❏ Type: ${x.value?.phones[0].numberType}`)
-            if (x.value.addresses[0]) {
-                info.push(`❏ Address: ${x.value.addresses[0].address}`)
-                info.push(`❏ Time Zone: ${x.value.addresses[0].timeZone}`);
+        if (!key) {
+            return await client.sendMessage(message.from, { text: `Please log in to your account first. Use ${prefix}tc <phone> to log in.` }, { quoted: message });
+        }
+
+        // Search for information about each phone number
+        for (let x of number) {
+            const phone = parsePhoneNumber(x);
+            const searchData = {
+                number: phone.nationalNumber,
+                countryCode: phone.country,
+                installationId: key.installationId
+            };
+            const search = await truecallerjs.search(searchData);
+            const result = search.data;
+            // console.log(JSON.stringify(search, null, 2));
+            if (!result?.data) {
+                return await client.sendMessage(message.from, { text: result?.message || reply.error }, { quoted: message });
             }
-            if (x.value.internetAddresses[0]) {
-                info.push(`❏ Email: ${x.value.internetAddresses[0].id}`);
+            if (!result?.data[0]) {
+                return await client.sendMessage(message.from, { text: 'Not found.' }, { quoted: message });
             }
-            if (x.value.image) {
-                await client.sendImage(message.from, x.value.image, info.join('\n'), message);
-                continue
+
+            // Process the retrieved data
+            for (let x of result.data) {
+                const info = [];
+                info.push(`❏ Name: *${x.name || 'Not found'}*`);
+                info.push(`❏ Number: *${phone.number}*`);
+                info.push(`❏ Carrier: *${x.phones?.[0].carrier}*`);
+                info.push(`❏ Type: *${x.phones?.[0].numberType}*`);
+                if (x.addresses[0]) {
+                    info.push(`❏ Address: *${x.addresses[0].address}*`);
+                    info.push(`❏ Time Zone: *${x.addresses[0].timeZone}*`);
+                }
+                if (x.internetAddresses[0]) {
+                    !x.internetAddresses[0].id || info.push(`❏ Email: *${x.internetAddresses[0].id}*`);
+                }
+                if (x.image) {
+                    await client.sendImage(message.from, x.image, info.join('\n'), message);
+                    continue;
+                }
+                await client.sendMessage(message.from, { text: info.join('\n') }, { quoted: message });
             }
-            await client.sendMessage(message.from, { text: info.join('\n') }, { quoted: message });
         }
     }
 };
