@@ -7,3 +7,5 @@ database/
 debug/
 session/
 config/credentials.json
+sessions/
+temp/*

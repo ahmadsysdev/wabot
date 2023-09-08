@@ -75,6 +75,7 @@ const {
 // Internal Libraries
 const senderType = require('./lib/senderType');
 const { convert, toAudio, toVideo } = require('./lib/convert');
+const { toFile } = require('qrcode');
 
 // Logger 
 const logger = pino(pretty({ colorize: true }));
@@ -89,6 +90,7 @@ global.db = new database();
 global.conf = new cfg();
 global.reply = require('./config/response.json');
 db.add('dashboard');
+db.add('sessions');
 
 // Attribute
 const attribute = {
@@ -182,13 +184,56 @@ const readFeatures = () => {
 }
 readFeatures();
 
+// Session created listener
+function ObservableSession() {
+    // Create an empty JSON object
+    const session = {};
+
+    // Create an event handler to store update listener
+    const updateListener = [];
+
+    // Custom setter method for adding properties to the JSON object
+    this.setProperty = (key, value) => {
+        session[key] = value;
+        // Trigger the update event
+        updateListener.forEach(listener => listener(key, value));
+    }
+
+    // To add an update listener
+    this.addUpdateListener = (listener) => {
+        updateListener.push(listener)
+    }
+
+    // To remove an update listener
+    this.removeUpdateListener = (listener) => {
+        const index = updateListener.indexOf(listener);
+        if (index !== -1) {
+            updateListener.splice(index, 1);
+        }
+    }
+
+    // The JSON itself
+    this.session = session;
+}
+
 // Create the './temp' directory if it doesn't exist
 if (!fs.existsSync('./temp')) {
     fs.mkdirSync('./temp');
 }
 
+// Sessions
+
+if (!fs.existsSync('./sessions')) {
+    fs.mkdirSync('./sessions');
+}
+const observables = new ObservableSession();
+const sessions = db.read('sessions');
+connectSession = async (filesession, user) => {
+    connect(filesession, user);
+}
+
 // Connect to WhatsApp Websocket
-const connect = async () => {
+const connect = async (filesession = './session', user = undefined) => {
     const starts = Date.now(); // Get the current timestamp
 
     // Log the start time in HH:mm:ss format
@@ -199,10 +244,10 @@ const connect = async () => {
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
     // Load or Create a multi-file authentication state (session)
-    const { state, saveCreds } = await useMultiFileAuthState('./session');
+    const { state, saveCreds } = await useMultiFileAuthState(filesession);
 
     const client = makeWASocket({
-        printQRInTerminal: true,
+        printQRInTerminal: !user,
         // logger: pino({ level: 'silent' }),
         logger,
         auth: {
@@ -230,7 +275,7 @@ const connect = async () => {
     if (fs.existsSync('./database/store.json')) {
         store.readFromFile('./database/store.json');
     } else {
-        writeFile('./database/store.json', '');
+        writeFile('./database/store.json', '{}');
     }
 
     // Periodically write the data from the 'store' object to the 'store.json' file every 10 seconds
@@ -245,37 +290,115 @@ const connect = async () => {
             const reason = new Boom(lastDisconnect?.error)?.output.statusCode;
             // logger.error('Connection close due to ', lastDisconnect.error);
             if (reason === DisconnectReason.badSession) {
-                logger.error('Bad session detected. Please delete the session file and run the script again.');
-                client.logout();
+                if (!user) {
+                    logger.error('Bad session detected. Please delete the session file and run the script again.');
+                    client.logout();
+                }
+                else {
+                    observables.setProperty(user, { message: 'Bad session file.' });
+                    client.logout();
+                }
             } else if (reason === DisconnectReason.connectionClosed) {
-                logger.error('Connection closed unexpectedly. Retrying...');
-                connect();
-            } else if (reason === DisconnectReason.connectionLost) {
-                logger.error('Connection lost. Check your internet connection. Retrying...');
-                setTimeout(() => {
+                if (!user) {
+                    logger.error('Connection closed unexpectedly. Retrying...');
                     connect();
-                }, 3000);
+                }
+                else {
+                    observables.setProperty(user, { message: 'Connection closed unexpectedly. Retrying...' });
+                    connect(filesession, user);
+                }
+            } else if (reason === DisconnectReason.connectionLost) {
+                if (!user) {
+                    logger.error('Connection lost. Check your internet connection. Retrying...');
+                    setTimeout(() => {
+                        connect();
+                    }, 3000);
+                }
+                else {
+                    observables.setProperty(user, { message: 'Connection lost.' });
+                    client.end();
+                }
             } else if (reason === DisconnectReason.connectionReplaced) {
-                logger.error('Connection replaced. Another new session has been opened. Exiting...');
-                process.exit(1);
+                if (!user) {
+                    logger.error('Connection replaced. Another new session has been opened. Exiting...');
+                    process.exit(1);
+                }
+                else {
+                    observables.setProperty(user, 'Connection replaced. Another new session has been opened.');
+                    client.end();
+                }
             } else if (reason === DisconnectReason.multideviceMismatch) {
-                logger.error('Multi-device mismatch error. Please rerun the script and scan the QR code again. Exiting...');
-                await deleteDirectory('./session');
-                process.exit(1);
+                if (!user) {
+                    logger.error('Multi-device mismatch error. Please rerun the script and scan the QR code again. Exiting...');
+                    await deleteDirectory(filesession);
+                    process.exit(1);
+                }
+                else {
+                    observables.setProperty(user, { message: 'Multi-device mismatch error. Please scan the qr code again.' });
+                    await deleteDirectory(filesession);
+                    connect(filesession, user);
+                }
             } else if (reason === DisconnectReason.loggedOut) {
-                logger.error('Device logged out. Please rerun the script and scan the QR code again. Exiting...');
-                await deleteDirectory('./session');
-                process.exit(0);
+                if (!user) {
+                    logger.error('Device logged out. Please rerun the script and scan the QR code again. Exiting...');
+                    await deleteDirectory(filesession);
+                    process.exit(0);
+                }
+                else {
+                    observables.setProperty(user, { message: 'Device logged out.' });
+                    await deleteDirectory(filesession);
+                    client.end();
+                }
             } else if (reason === DisconnectReason.restartRequired) {
-                logger.info('Restart required. Restarting...');
-                connect();
+                if (!user) {
+                    logger.info('Restart required. Restarting...');
+                    connect(filesession, user);
+                } else {
+                    connect(filesession, user);
+                }
             } else {
-                logger.error(`${lastDisconnect.error}`);
-                process.exit(0);
+                if (!user) {
+                    logger.error(`${lastDisconnect.error}`);
+                    process.exit(0);
+                }
+                else {
+                    observables.setProperty(user, { message: `${lastDisconnect.error}` })
+                }
             }
         }
+        else if (connection === 'open') {
+            // Client sessions
+            sessions.forEach((x, index) => {
+                if (!x.active) {
+                    const fss = `./sessions/${x.id.split('@')[0]}`;
+                    connectSession(fss, x.id);
+                    sessions[index]['active'] = true;
+                }
+            })
+            observables.addUpdateListener(async (key, value) => {
+                if (!value.qr) {
+                    await client.sendMessage(key, { text: value.message });
+                }
+                else {
+                    const filepath = `./temp/qrcode_${key}.png`;
+                    toFile(filepath, value.qr, async (err) => {
+                        if (err) {
+                            return await client.sendMessage(key, { message: 'Failed to generate qrcode' });
+                        }
+                        else {
+                            return await client.sendImage(key, filepath, 'To get started with our WhatsApp bot, please scan the QR code below using your WhatsApp app.');
+                        }
+                    })
+                }
+            })
+        }
         if (qr !== undefined) {
-            logger.info('Please scan the QR code using your WhatsApp app.');
+            if (!user) {
+                logger.info('Please scan the QR code using your WhatsApp app.');
+            }
+            else {
+                observables.setProperty(user, { qr: qr });
+            }
         }
     })
 
@@ -1534,7 +1657,7 @@ const connect = async () => {
 
         // Execute the command's run method and handle success and failure
         cmd.run(client, message, {
-            query, attribute, args, arg, baileys, prefix, command, queries,
+            query, attribute, args, arg, baileys, prefix, command, queries, connect,
             response, dev, selfId: client.decodeJid(client.user.id), conf,
             groupMetadata, groupSubject, groupAdmins, isAdmin, selfAdmin, queue,
             stanza, isGroup, regex: cmd.options.regex, cookies, logger, mentioned, reply, cmd, cookies
