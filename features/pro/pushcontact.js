@@ -24,6 +24,12 @@ module.exports = {
     category: 'pro',
 
     /**
+     * Indicates if this command is only available for professionals.
+     * @type {boolean}
+     */
+    isProfessional: true,
+    
+    /**
      * Wait message
      * @type {boolean}
      */
