@@ -38,11 +38,18 @@ module.exports = {
      * @param {Object} options.reply - The reply message object
      */
     async run(client, message, { reply, queries }) {
-        const results = await image(queries, { safe: true });
-        if (!results[0]) {
-            return await client.sendMessage(message.from, { text: 'Not found.' }, { quoted: message });
+        try {
+            const results = await image(queries, { safe: true });
+            if (!results[0]) {
+                return await client.sendMessage(message.from, { text: 'Not found.' }, { quoted: message });
+            }
+            let succeed = false;
+            while (!succeed) {
+                const index = Math.floor(Math.random() * 15);
+                await client.sendImage(message.from, results[index].url, reply.done, message).then(x => succeed = true).catch(x => void 0);
+            }
+        } catch (x) {
+            return await client.sendMessage(message.from, { text: x.message }, { quoted: message })
         }
-        const index = Math.floor(Math.random() * results.length);
-        return await client.sendImage(message.from, results[index].url, reply.done, message);
     }
 }
