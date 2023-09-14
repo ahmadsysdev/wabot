@@ -231,6 +231,7 @@ const sessions = db.read('sessions');
 connectSession = async (filesession, user) => {
     connect(filesession, user);
 }
+let obs = false;
 
 // Connect to WhatsApp Websocket
 const connect = async (filesession = './session', user = undefined) => {
@@ -265,6 +266,9 @@ const connect = async (filesession = './session', user = undefined) => {
             }
         }
     })
+
+    // Login request counter to avoid spamming
+    let loginTotal = 0;
 
     // Bind the 'client.ev' event to the 'store' object
     store.bind(client.ev);
@@ -347,7 +351,7 @@ const connect = async (filesession = './session', user = undefined) => {
                 else {
                     observables.setProperty(user, { message: 'Device logged out.' });
                     await deleteDirectory(filesession);
-                    client.end();
+                    return client.end();
                 }
             } else if (reason === DisconnectReason.restartRequired) {
                 if (!user) {
@@ -366,7 +370,7 @@ const connect = async (filesession = './session', user = undefined) => {
                 }
             }
         }
-        else if (connection === 'open') {
+        else if (connection === 'open' && !obs) {
             // Client sessions
             sessions.forEach((x, index) => {
                 if (!x.active) {
@@ -391,13 +395,19 @@ const connect = async (filesession = './session', user = undefined) => {
                     })
                 }
             })
+            obs = true;
         }
         if (qr !== undefined) {
             if (!user) {
                 logger.info('Please scan the QR code using your WhatsApp app.');
             }
             else {
-                observables.setProperty(user, { qr: qr });
+                loginTotal += 1;
+                if (loginTotal <= 5) {
+                    observables.setProperty(user, { qr: qr });
+                } else {
+                    return client.end();
+                }
             }
         }
     })

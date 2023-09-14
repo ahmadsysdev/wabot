@@ -21,14 +21,14 @@ module.exports = {
      * Command category.
      * @type {string}
      */
-    category: 'pro',
+    category: 'professional',
 
     /**
      * Indicates if this command is only available for professionals.
      * @type {boolean}
      */
     isProfessional: true,
-    
+
     /**
      * Wait message
      * @type {boolean}
