@@ -78,7 +78,7 @@ module.exports = {
             const filepath = path.join('.', 'temp', `${title}.mp4`);
             const caption = `❏ *Title*: ${title}\n❏ *Publish date*: ${publishDate}\n❏ *Views*: ${viewCount}\n❏ *Channel name*: ${name}\n❏ *Username*: ${user}\n❏ *Description*: ${description}`;
             ytdl(link, { quality: 'highestvideo' }).pipe(createWriteStream(filepath).on('finish', async () => {
-                return await client.sendMedia(message.from, filepath, caption, message)
+                return await client.sendVideo(message.from, filepath, caption, message)
             }))
         }).catch(async (err) => {
             logger.error(err);
