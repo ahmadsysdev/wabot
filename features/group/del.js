@@ -52,7 +52,7 @@ module.exports = {
 				.catch(() => client.sendMessage(message.from, { text: RemotePlayback.error }, { quoted: message }).then(() => void 0));
 		} else {
 			if (!selfAdmin) {
-				return await client.sendMessage(message.from, { text: RemotePlayback.needAdminDelete }, { quoted: message });
+				return await client.sendMessage(message.from, { text: reply.needAdminDelete }, { quoted: message });
 			}
 			// Delete the quoted message and the triggering message (admin required)
 			client.sendMessage(message.from, { delete: quoted.key })

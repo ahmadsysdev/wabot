@@ -226,6 +226,9 @@ if (!fs.existsSync('./temp')) {
 if (!fs.existsSync('./sessions')) {
     fs.mkdirSync('./sessions');
 }
+if (!fs.existsSync('./dbs')) {
+    fs.mkdirSync('./dbs');
+}
 const observables = new ObservableSession();
 const sessions = db.read('sessions');
 connectSession = async (filesession, user) => {
@@ -246,6 +249,9 @@ const connect = async (filesession = './session', user = undefined) => {
 
     // Load or Create a multi-file authentication state (session)
     const { state, saveCreds } = await useMultiFileAuthState(filesession);
+
+    // Defibe database directory path
+    const dbs = user ? `./dbs/${user}` : './database';
 
     const client = makeWASocket({
         printQRInTerminal: !user,
@@ -276,15 +282,15 @@ const connect = async (filesession = './session', user = undefined) => {
     // Check if the 'store.json' file exists in the './database' directory
     // If it exists, read the data from the file into the 'store' object
     // If it doesn't exist, create an empty 'store.json' file
-    if (fs.existsSync('./database/store.json')) {
-        store.readFromFile('./database/store.json');
+    if (fs.existsSync(`${dbs}/store.json`)) {
+        store.readFromFile(`${dbs}/store.json`);
     } else {
-        writeFile('./database/store.json', '{}');
+        writeFile(`${dbs}/store.json`);
     }
 
     // Periodically write the data from the 'store' object to the 'store.json' file every 10 seconds
     setInterval(() => {
-        store.writeToFile('./database/store.json');
+        store.writeToFile(`${dbs}/store.json`);
     }, 10_000);
 
     // Listen for the 'connection update' event triggered by the client
