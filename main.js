@@ -1244,7 +1244,7 @@ const connect = async (filesession = './session', user = undefined) => {
 
                 // Extract the content types from the keys of the 'message' object
                 message.mtype = Object.keys(message.message).filter((x) =>
-                    x.includes('Message') || x.includes('conversation')
+                    (x.includes('Message') || x.includes('conversation')) && x !== 'senderKeyDistributionMessage'
                 )
 
                 try {
@@ -1310,7 +1310,7 @@ const connect = async (filesession = './session', user = undefined) => {
 
                     // Determine the message type of the quoted message
                     message.quoted.mtype = Object.keys(message.quoted.message).filter((x) => {
-                        return x.includes('Message') || x.includes('conversation');
+                        return (x.includes('Message') || x.includes('conversation')) && x !== 'senderKeyDistributionMessage';
                     })[0];
 
                     // Extract the text content of the quoted message
@@ -1876,6 +1876,9 @@ const connect = async (filesession = './session', user = undefined) => {
      * @param {Array} messages - An array of updated or inserted message objects.
      */
     client.ev.on('messages.upsert', async (response) => {
+        // Debug
+        // console.log(JSON.stringify(response, null, 2));
+
         // Loop through each updated or inserted message
         // Extracting relevant information from the response
         messages = response.messages[0];

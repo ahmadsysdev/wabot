@@ -70,7 +70,7 @@ module.exports = {
             let text = [];
             text.push(`◪ *INFO USER*`);
             text.push(`❏ Number: 「 ${message.sender.split('@')[0]} 」`);
-            text.push(`❏ Name: 「 ${client.getName(message.sender)} 」`);
+            text.push(`❏ Name: 「 ${pushName} 」`);
             text.push(`❏ Badges: 「 ${isProfessional ? 'PRO' : isPremium ? 'PREMIUM' : isDev ? 'Developer' : 'Standard'} 」`);
             if (isProfessional) text.push(`❏ Expired: 「 ${fx.days} Days, ${fx.hours} Hour ${fx.minutes} Minutes 」`);
             if (isPremium) text.push(`❏ Expired: 「 ${px.days} Days, ${px.hours} Hour ${px.minutes} Minutes 」`);
